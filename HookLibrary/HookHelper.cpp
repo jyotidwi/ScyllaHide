@@ -724,29 +724,56 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                 if (!IsBadReadPtr((void*)ExceptionAddr, 2))
                     if (*reinterpret_cast<USHORT*>(ExceptionAddr) == 0x340F) // sysenter
                     {
-                        //x32bit syscall_number windows 10 22H2 19045.3324 ~
-                        enum SYSCALLNAME : ULONG {
-                            NTSETINFORMATIONPROCESS = 0x4F,
-                            NTQUERYINFORMATIONPROCESS = 0xB9,
-                            NTSETINFORMATIONTHREAD = 0x4D,
-                            NTOPENFILE = 0xF4,
-                            NTCREATESECTION = 0x163,
-                            NTMAPVIEWOFSECTION = 0x101,
-                            NTUNMAPVIEWOFSECTION = 0x14,
-                            NTCLOSE = 0x18E,
-                            NTPROTECTVIRTUALMEMORY = 0xCE,
-                            NTQUERYVIRTUALMEMORY = 0x97,
-                            NTQUERYSYSTEMINFORMATION = 0x9D
+                        //x32bit syscall numbers - version-aware selection
+                        // Windows 7 Service Pack 1 Build 7601
+                        struct SYSCALLNAME_WIN7 {
+                            static const ULONG NTSETINFORMATIONPROCESS  = 0x14d;
+                            static const ULONG NTQUERYINFORMATIONPROCESS = 0xe9;
+                            static const ULONG NTSETINFORMATIONTHREAD    = 0x14f;
+                            static const ULONG NTOPENFILE                = 0xb3;
+                            static const ULONG NTCREATESECTION           = 0x53;
+                            static const ULONG NTMAPVIEWOFSECTION        = 0xa7;
+                            static const ULONG NTUNMAPVIEWOFSECTION      = 0x181;
+                            static const ULONG NTCLOSE                   = 0x32;
+                            static const ULONG NTPROTECTVIRTUALMEMORY    = 0xd7;
+                            static const ULONG NTQUERYVIRTUALMEMORY      = 0x10b;
+                            static const ULONG NTQUERYSYSTEMINFORMATION  = 0x105;
                         };
+                        // Windows 10 22H2 19045.3324 ~
+                        struct SYSCALLNAME_WIN10 {
+                            static const ULONG NTSETINFORMATIONPROCESS  = 0x4F;
+                            static const ULONG NTQUERYINFORMATIONPROCESS = 0xB9;
+                            static const ULONG NTSETINFORMATIONTHREAD    = 0x4D;
+                            static const ULONG NTOPENFILE                = 0xF4;
+                            static const ULONG NTCREATESECTION           = 0x163;
+                            static const ULONG NTMAPVIEWOFSECTION        = 0x101;
+                            static const ULONG NTUNMAPVIEWOFSECTION      = 0x14;
+                            static const ULONG NTCLOSE                   = 0x18E;
+                            static const ULONG NTPROTECTVIRTUALMEMORY    = 0xCE;
+                            static const ULONG NTQUERYVIRTUALMEMORY      = 0x97;
+                            static const ULONG NTQUERYSYSTEMINFORMATION  = 0x9D;
+                        };
+
+                        // Select the right table at runtime
+                        const bool isWin7 = (RtlNtMajorVersion() == 6 && RtlNtMinorVersion() == 1);
+                        ULONG SN_NTSETINFORMATIONPROCESS  = isWin7 ? SYSCALLNAME_WIN7::NTSETINFORMATIONPROCESS  : SYSCALLNAME_WIN10::NTSETINFORMATIONPROCESS;
+                        ULONG SN_NTQUERYINFORMATIONPROCESS= isWin7 ? SYSCALLNAME_WIN7::NTQUERYINFORMATIONPROCESS: SYSCALLNAME_WIN10::NTQUERYINFORMATIONPROCESS;
+                        ULONG SN_NTSETINFORMATIONTHREAD   = isWin7 ? SYSCALLNAME_WIN7::NTSETINFORMATIONTHREAD   : SYSCALLNAME_WIN10::NTSETINFORMATIONTHREAD;
+                        ULONG SN_NTOPENFILE               = isWin7 ? SYSCALLNAME_WIN7::NTOPENFILE               : SYSCALLNAME_WIN10::NTOPENFILE;
+                        ULONG SN_NTCREATESECTION          = isWin7 ? SYSCALLNAME_WIN7::NTCREATESECTION          : SYSCALLNAME_WIN10::NTCREATESECTION;
+                        ULONG SN_NTMAPVIEWOFSECTION       = isWin7 ? SYSCALLNAME_WIN7::NTMAPVIEWOFSECTION       : SYSCALLNAME_WIN10::NTMAPVIEWOFSECTION;
+                        ULONG SN_NTUNMAPVIEWOFSECTION     = isWin7 ? SYSCALLNAME_WIN7::NTUNMAPVIEWOFSECTION     : SYSCALLNAME_WIN10::NTUNMAPVIEWOFSECTION;
+                        ULONG SN_NTCLOSE                  = isWin7 ? SYSCALLNAME_WIN7::NTCLOSE                  : SYSCALLNAME_WIN10::NTCLOSE;
+                        ULONG SN_NTPROTECTVIRTUALMEMORY   = isWin7 ? SYSCALLNAME_WIN7::NTPROTECTVIRTUALMEMORY   : SYSCALLNAME_WIN10::NTPROTECTVIRTUALMEMORY;
+                        ULONG SN_NTQUERYVIRTUALMEMORY     = isWin7 ? SYSCALLNAME_WIN7::NTQUERYVIRTUALMEMORY     : SYSCALLNAME_WIN10::NTQUERYVIRTUALMEMORY;
+                        ULONG SN_NTQUERYSYSTEMINFORMATION = isWin7 ? SYSCALLNAME_WIN7::NTQUERYSYSTEMINFORMATION : SYSCALLNAME_WIN10::NTQUERYSYSTEMINFORMATION;
 
 
                         ULONG Syscallnum = info->ContextRecord->Eax;
 
                         PVOID FuncArgs = reinterpret_cast<PVOID>(info->ContextRecord->Esp + 8);
 
-                        switch (Syscallnum)
-                        {
-                        case SYSCALLNAME::NTSETINFORMATIONPROCESS:
+                        if (Syscallnum == SN_NTSETINFORMATIONPROCESS)
                         {
                             //ProcessWow64Information
 
@@ -763,10 +790,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             }
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTQUERYINFORMATIONPROCESS:
+                        else if (Syscallnum == SN_NTQUERYINFORMATIONPROCESS)
                         {
 
                             HANDLE ProcessHandle = *reinterpret_cast<HANDLE*>(FuncArgs);
@@ -778,10 +803,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             info->ContextRecord->Eax = NtQueryInformationProcess(ProcessHandle, pclass, informationbuffer, buffersize, returnbuffersize);
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTSETINFORMATIONTHREAD:
+                        else if (Syscallnum == SN_NTSETINFORMATIONTHREAD)
                         {
 
                             HANDLE ProcessHandle = *reinterpret_cast<HANDLE*>(FuncArgs);
@@ -792,12 +815,9 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             info->ContextRecord->Eax = NtSetInformationThread(ProcessHandle, tclass, threadinformation, buffersize);
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTOPENFILE:
+                        else if (Syscallnum == SN_NTOPENFILE)
                         {
-
 
                             PHANDLE PProcessHandle = *reinterpret_cast<PHANDLE*>(FuncArgs);
                             ACCESS_MASK accessmask = *reinterpret_cast<ACCESS_MASK*>((ULONG_PTR*)FuncArgs + 1);
@@ -809,10 +829,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             info->ContextRecord->Eax = NtOpenFile(PProcessHandle, accessmask, attribute, io_block, shareaccess, openoption);
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTCREATESECTION:
+                        else if (Syscallnum == SN_NTCREATESECTION)
                         {
 
                             PHANDLE SectionHandle = *reinterpret_cast<PHANDLE*>(FuncArgs);
@@ -834,10 +852,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             );
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTMAPVIEWOFSECTION:
+                        else if (Syscallnum == SN_NTMAPVIEWOFSECTION)
                         {
                             HANDLE SectionHandle = *reinterpret_cast<HANDLE*>(FuncArgs);
                             HANDLE ProcessHandle = *reinterpret_cast<HANDLE*>((ULONG_PTR*)FuncArgs + 1);
@@ -864,10 +880,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             );
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTUNMAPVIEWOFSECTION:
+                        else if (Syscallnum == SN_NTUNMAPVIEWOFSECTION)
                         {
                             HANDLE ProcessHandle = *reinterpret_cast<HANDLE*>(FuncArgs);
                             PVOID Baseaddress = *reinterpret_cast<PVOID*>((ULONG_PTR*)FuncArgs + 1);
@@ -875,18 +889,15 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             info->ContextRecord->Eax = NtUnmapViewOfSection(ProcessHandle, Baseaddress);
 
                             info->ContextRecord->Eip += 2;
-
-                            break;
                         }
-                        case SYSCALLNAME::NTCLOSE:
+                        else if (Syscallnum == SN_NTCLOSE)
                         {
                             HANDLE Handle = *reinterpret_cast<HANDLE*>(FuncArgs);
                             info->ContextRecord->Eax = NtClose(Handle);
 
                             info->ContextRecord->Eip += 2;
-                            break;
                         }
-                        case SYSCALLNAME::NTPROTECTVIRTUALMEMORY:
+                        else if (Syscallnum == SN_NTPROTECTVIRTUALMEMORY)
                         {
 
                             HANDLE ProcessHandle = *reinterpret_cast<HANDLE*>(FuncArgs);
@@ -898,9 +909,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             info->ContextRecord->Eax = NtProtectVirtualMemory(ProcessHandle, Baseaddress, RegionSize, NewProt, OldProt);
 
                             info->ContextRecord->Eip += 2;
-                            break;
                         }
-                        case SYSCALLNAME::NTQUERYVIRTUALMEMORY:
+                        else if (Syscallnum == SN_NTQUERYVIRTUALMEMORY)
                         {
                             HANDLE ProcessHandle = *reinterpret_cast<HANDLE*>(FuncArgs);
                             PVOID Baseaddress = *reinterpret_cast<PVOID*>((ULONG_PTR*)FuncArgs + 1);
@@ -919,9 +929,8 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             );
 
                             info->ContextRecord->Eip += 2;
-                            break;
                         }
-                        case SYSCALLNAME::NTQUERYSYSTEMINFORMATION:
+                        else if (Syscallnum == SN_NTQUERYSYSTEMINFORMATION)
                         {
                             SYSTEM_INFORMATION_CLASS SysteminformationClass = *reinterpret_cast<SYSTEM_INFORMATION_CLASS*>(FuncArgs);
                             PVOID SystemInformation = *reinterpret_cast<PVOID*>((ULONG_PTR*)FuncArgs + 1);
@@ -936,13 +945,12 @@ LONG CALLBACK VMPSysenterHandler(EXCEPTION_POINTERS* info)
                             );
 
                             info->ContextRecord->Eip += 2;
-                            break;
                         }
-                        default:
+                        else
                         {
                             return EXCEPTION_CONTINUE_SEARCH;
                         }
-                        }
+
 
 
                         return EXCEPTION_CONTINUE_EXECUTION;
