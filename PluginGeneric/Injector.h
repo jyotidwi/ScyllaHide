@@ -37,7 +37,6 @@ BYTE * ReadFileToMemory(const WCHAR * targetFilePath);
 void FillHookDllData(HANDLE hProcess, HOOK_DLL_DATA * data);
 bool StartFixBeingDebugged(DWORD targetPid, bool setToNull);
 bool ApplyAntiAntiAttach(DWORD targetPid);
-void AddWineFunctionName(HANDLE hProcess);
 
 DWORD GetAddressOfEntryPoint(BYTE * dllMemory);
 bool RemoveDebugPrivileges(HANDLE hProcess);
