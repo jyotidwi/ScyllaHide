@@ -55,6 +55,7 @@ t_NtUserGetForegroundWindow _NtUserGetForegroundWindow = 0;
 
 t_NtSetInformationThread _NtSetInformationThread = 0;
 t_NtQuerySystemInformation _NtQuerySystemInformation = 0;
+t_NtQueryInformationThread _NtQueryInformationThread = 0;
 t_NtQueryInformationProcess _NtQueryInformationProcess = 0;
 t_NtSetInformationProcess _NtSetInformationProcess = 0;
 t_NtQueryObject _NtQueryObject = 0;
@@ -86,6 +87,7 @@ bool ApplyNtdllHook(HOOK_DLL_DATA * hdd, HANDLE hProcess, BYTE * dllMemory, DWOR
 
     void * HookedNtSetInformationThread = (void *)(GetDllFunctionAddressRVA(dllMemory, "HookedNtSetInformationThread") + imageBase);
     void * HookedNtQuerySystemInformation = (void *)(GetDllFunctionAddressRVA(dllMemory, "HookedNtQuerySystemInformation") + imageBase);
+    void * HookedNtQueryInformationThread = (void *)(GetDllFunctionAddressRVA(dllMemory, "HookedNtQueryInformationThread") + imageBase);
     void * HookedNtQueryInformationProcess = (void *)(GetDllFunctionAddressRVA(dllMemory, "HookedNtQueryInformationProcess") + imageBase);
     void * HookedNtSetInformationProcess = (void *)(GetDllFunctionAddressRVA(dllMemory, "HookedNtSetInformationProcess") + imageBase);
     void * HookedNtQueryObject = (void *)(GetDllFunctionAddressRVA(dllMemory, "HookedNtQueryObject") + imageBase);
@@ -110,6 +112,7 @@ bool ApplyNtdllHook(HOOK_DLL_DATA * hdd, HANDLE hProcess, BYTE * dllMemory, DWOR
 
     _NtSetInformationThread = (t_NtSetInformationThread)GetProcAddress(hNtdll, "NtSetInformationThread");
     _NtQuerySystemInformation = (t_NtQuerySystemInformation)GetProcAddress(hNtdll, "NtQuerySystemInformation");
+    _NtQueryInformationThread = (t_NtQueryInformationThread)GetProcAddress(hNtdll, "NtQueryInformationThread");
     _NtQueryInformationProcess = (t_NtQueryInformationProcess)GetProcAddress(hNtdll, "NtQueryInformationProcess");
     _NtSetInformationProcess = (t_NtSetInformationProcess)GetProcAddress(hNtdll, "NtSetInformationProcess");
     _NtQueryObject = (t_NtQueryObject)GetProcAddress(hNtdll, "NtQueryObject");
@@ -130,9 +133,10 @@ bool ApplyNtdllHook(HOOK_DLL_DATA * hdd, HANDLE hProcess, BYTE * dllMemory, DWOR
     _NtCreateSection = (t_NtCreateSection)GetProcAddress(hNtdll, "NtCreateSection");
     _NtMapViewOfSection = (t_NtMapViewOfSection)GetProcAddress(hNtdll, "NtMapViewOfSection");
 
-    g_log.LogDebug(L"ApplyNtdllHook -> _NtSetInformationThread %p _NtQuerySystemInformation %p _NtQueryInformationProcess %p _NtSetInformationProcess %p _NtQueryObject %p",
+    g_log.LogDebug(L"ApplyNtdllHook -> _NtSetInformationThread %p _NtQuerySystemInformation %p _NtQueryInformationThread %p _NtQueryInformationProcess %p _NtSetInformationProcess %p _NtQueryObject %p",
         _NtSetInformationThread,
         _NtQuerySystemInformation,
+        _NtQueryInformationThread,
         _NtQueryInformationProcess,
         _NtSetInformationProcess,
         _NtQueryObject);
@@ -165,6 +169,11 @@ bool ApplyNtdllHook(HOOK_DLL_DATA * hdd, HANDLE hProcess, BYTE * dllMemory, DWOR
     {
         g_log.LogDebug(L"ApplyNtdllHook -> Hooking NtQuerySystemInformation");
         HOOK_NATIVE(NtQuerySystemInformation);
+    }
+    if (hdd->EnableNtQueryInformationThreadHook == TRUE)
+    {
+        g_log.LogDebug(L"ApplyNtdllHook -> Hooking NtQueryInformationThread");
+        HOOK_NATIVE(NtQueryInformationThread);
     }
     if (hdd->EnableNtQueryInformationProcessHook == TRUE)
     {
@@ -641,6 +650,7 @@ void RestoreNtdllHooks(HOOK_DLL_DATA * hdd, HANDLE hProcess)
             RESTORE_JMP(NtYieldExecution);
             RESTORE_JMP(NtQueryObject);
             RESTORE_JMP(NtSetInformationProcess);
+            RESTORE_JMP(NtQueryInformationThread);
             RESTORE_JMP(NtQueryInformationProcess);
             RESTORE_JMP(NtQuerySystemInformation);
             RESTORE_JMP(NtSetInformationThread);
@@ -660,6 +670,7 @@ void RestoreNtdllHooks(HOOK_DLL_DATA * hdd, HANDLE hProcess)
     RESTORE_JMP(NtYieldExecution);
     RESTORE_JMP(NtQueryObject);
     RESTORE_JMP(NtSetInformationProcess);
+    RESTORE_JMP(NtQueryInformationThread);
     RESTORE_JMP(NtQueryInformationProcess);
     RESTORE_JMP(NtQuerySystemInformation);
     RESTORE_JMP(NtSetInformationThread);
@@ -678,6 +689,7 @@ void RestoreNtdllHooks(HOOK_DLL_DATA * hdd, HANDLE hProcess)
     FREE_HOOK(NtYieldExecution);
     FREE_HOOK(NtQueryObject);
     FREE_HOOK(NtSetInformationProcess);
+    FREE_HOOK(NtQueryInformationThread);
     FREE_HOOK(NtQueryInformationProcess);
     FREE_HOOK(NtQuerySystemInformation);
     FREE_HOOK(NtSetInformationThread);

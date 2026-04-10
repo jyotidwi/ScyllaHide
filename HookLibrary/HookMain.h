@@ -38,6 +38,7 @@ typedef struct _HOOK_DLL_DATA {
 
     BOOLEAN EnableNtSetInformationThreadHook;
     BOOLEAN EnableNtQuerySystemInformationHook;
+    BOOLEAN EnableNtQueryInformationThreadHook;
     BOOLEAN EnableNtQueryInformationProcessHook;
 	BOOLEAN EnableNtSetInformationProcessHook;
     BOOLEAN EnableNtQueryObjectHook;
@@ -92,6 +93,8 @@ typedef struct _HOOK_DLL_DATA {
     DWORD NtQuerySystemInformationBackupSize;
     t_NtSetInformationProcess dNtSetInformationProcess;
     DWORD NtSetInformationProcessBackupSize;
+    t_NtQueryInformationThread dNtQueryInformationThread;
+    DWORD NtQueryInformationThreadBackupSize;
     t_NtQueryInformationProcess dNtQueryInformationProcess;
     DWORD NtQueryInformationProcessBackupSize;
     t_NtQueryObject dNtQueryObject;

@@ -336,21 +336,21 @@ void * GetPEBRemote(HANDLE hProcess)
 {
 	PROCESS_BASIC_INFORMATION pbi;
 
-	if (HookDllData.dNtQueryInformationProcess)
-	{
-		if (HookDllData.dNtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0) >= 0)
-		{
-			return pbi.PebBaseAddress;
-		}
-	}
-	else
-	{
-		//maybe not hooked
-		if (NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0) >= 0)
-		{
-			return pbi.PebBaseAddress;
-		}
-	}
+	    if (HookDllData.dNtQueryInformationProcess)
+    {
+        if (NT_SUCCESS(HookDllData.dNtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0)))
+        {
+            return pbi.PebBaseAddress;
+        }
+    }
+    else
+    {
+        //maybe not hooked
+        if (NT_SUCCESS(NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0)))
+        {
+            return pbi.PebBaseAddress;
+        }
+    }
 
 	return 0;
 }
@@ -360,21 +360,21 @@ DWORD GetProcessIdByProcessHandle(HANDLE hProcess)
 {
 	PROCESS_BASIC_INFORMATION pbi;
 
-	if (HookDllData.dNtQueryInformationProcess)
-	{
-		if (HookDllData.dNtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0) >= 0)
-		{
-			return HandleToULong(pbi.UniqueProcessId);
-		}
-	}
-	else
-	{
-		//maybe not hooked
-		if (NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0) >= 0)
-		{
-			return HandleToULong(pbi.UniqueProcessId);
-		}
-	}
+	    if (HookDllData.dNtQueryInformationProcess)
+    {
+        if (NT_SUCCESS(HookDllData.dNtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0)))
+        {
+            return HandleToULong(pbi.UniqueProcessId);
+        }
+    }
+    else
+    {
+        //maybe not hooked
+        if (NT_SUCCESS(NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), 0)))
+        {
+            return HandleToULong(pbi.UniqueProcessId);
+        }
+    }
 
 	return 0;
 }
@@ -383,10 +383,20 @@ DWORD GetProcessIdByThreadHandle(HANDLE hThread)
 {
 	THREAD_BASIC_INFORMATION tbi;
 
-	if (NT_SUCCESS(NtQueryInformationThread(hThread, ThreadBasicInformation, &tbi, sizeof(THREAD_BASIC_INFORMATION), 0)))
-	{
-		return HandleToULong(tbi.ClientId.UniqueProcess);
-	}
+    if (HookDllData.dNtQueryInformationThread)
+    {
+	    if (NT_SUCCESS(HookDllData.dNtQueryInformationThread(hThread, ThreadBasicInformation, &tbi, sizeof(THREAD_BASIC_INFORMATION), 0)))
+	    {
+		    return HandleToULong(tbi.ClientId.UniqueProcess);
+	    }
+    }
+    else
+    {
+	    if (NT_SUCCESS(NtQueryInformationThread(hThread, ThreadBasicInformation, &tbi, sizeof(THREAD_BASIC_INFORMATION), 0)))
+	    {
+		    return HandleToULong(tbi.ClientId.UniqueProcess);
+	    }
+    }
 
 	return 0;
 }

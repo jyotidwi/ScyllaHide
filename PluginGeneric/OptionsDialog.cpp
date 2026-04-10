@@ -103,6 +103,7 @@ static void UpdateOptions(HWND hWnd, const scl::Settings *settings)
     CheckDlgButton(hWnd, IDC_NTSETINFORMATIONTHREAD, opts->hookNtSetInformationThread);
     CheckDlgButton(hWnd, IDC_NTSETINFORMATIONPROCESS, opts->hookNtSetInformationProcess);
     CheckDlgButton(hWnd, IDC_NTQUERYSYSTEMINFORMATION, opts->hookNtQuerySystemInformation);
+    CheckDlgButton(hWnd, IDC_NTQUERYINFORMATIONTHREAD, opts->hookNtQueryInformationThread);
     CheckDlgButton(hWnd, IDC_NTQUERYINFORMATIONPROCESS, opts->hookNtQueryInformationProcess);
     CheckDlgButton(hWnd, IDC_NTQUERYOBJECT, opts->hookNtQueryObject);
     CheckDlgButton(hWnd, IDC_NTYIELDEXECUTION, opts->hookNtYieldExecution);
@@ -197,6 +198,7 @@ void SaveOptions(HWND hWnd, scl::Settings *settings)
     opts->hookNtSetInformationThread = (IsDlgButtonChecked(hWnd, IDC_NTSETINFORMATIONTHREAD) == BST_CHECKED);
     opts->hookNtSetInformationProcess = (IsDlgButtonChecked(hWnd, IDC_NTSETINFORMATIONPROCESS) == BST_CHECKED);
     opts->hookNtQuerySystemInformation = (IsDlgButtonChecked(hWnd, IDC_NTQUERYSYSTEMINFORMATION) == BST_CHECKED);
+    opts->hookNtQueryInformationThread = (IsDlgButtonChecked(hWnd, IDC_NTQUERYINFORMATIONTHREAD) == BST_CHECKED);
     opts->hookNtQueryInformationProcess = (IsDlgButtonChecked(hWnd, IDC_NTQUERYINFORMATIONPROCESS) == BST_CHECKED);
     opts->hookNtQueryObject = (IsDlgButtonChecked(hWnd, IDC_NTQUERYOBJECT) == BST_CHECKED);
     opts->hookNtYieldExecution = (IsDlgButtonChecked(hWnd, IDC_NTYIELDEXECUTION) == BST_CHECKED);
@@ -310,16 +312,11 @@ HWND CreateTooltips(HWND hDlg)
             L"process ID like the ID from explorer.exe."
         },
         {
-            IDC_NTQUERYINFORMATIONPROCESS,
-            L"A very important option. Various PROCESSINFOCLASS values can be used\r\nto detect a debugger.\r\n"
-            L" ProcessDebugFlags: Should return 1 in the supplied buffer.\r\n"
-            L" ProcessDebugPort: Should return 0 in the supplied buffer.\r\n"
-            L" ProcessDebugObjectHandle: Should return 0 in the supplied buffer\r\nand the error STATUS_PORT_NOT_SET(0xC0000353)\r\n"
-            L" ProcessBasicInformation: Reveals the parent process ID.\r\n"
-            L" ProcessBreakOnTermination: Please see NtSetInformationProcess\r\n"
-            L" ProcessHandleTracing: Please see NtSetInformationProcess\r\n"
-            L"A lot of protectors use this to detect debuggers.\r\n"
-            L"The windows API CheckRemoteDebuggerPresent uses NtQueryInformationProcess internally."
+            IDC_NTQUERYINFORMATIONTHREAD,
+            L"This option ensures that the ThreadHideFromDebugger THREADINFOCLASS value\r\n"
+            L"returns what it's supposed to when the NtSetInformationThread option is enabled.\r\n"
+            L"This should be turned on if the NtSetInformationThread option is also on, otherwise\r\n"
+            L"it can be easily detected."
         },
         {
             IDC_NTQUERYOBJECT,

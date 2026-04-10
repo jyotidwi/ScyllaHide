@@ -72,6 +72,7 @@ void scl::Settings::LoadProfile(const wchar_t *file, const wchar_t *name, Profil
     profile->hookNtContinue = IniLoadNum(file, name, L"NtContinueHook", 1);
     profile->hookNtCreateThreadEx = IniLoadNum(file, name, L"NtCreateThreadExHook", 1);
     profile->hookNtGetContextThread = IniLoadNum(file, name, L"NtGetContextThreadHook", 1);
+    profile->hookNtQueryInformationThread = IniLoadNum(file, name, L"NtQueryInformationThreadHook", 1);
     profile->hookNtQueryInformationProcess = IniLoadNum(file, name, L"NtQueryInformationProcessHook", 1);
     profile->hookNtQueryObject = IniLoadNum(file, name, L"NtQueryObjectHook", 1);
     profile->hookNtQueryPerformanceCounter = IniLoadNum(file, name, L"NtQueryPerformanceCounterHook", 1);
@@ -149,6 +150,7 @@ bool scl::Settings::SaveProfile(const wchar_t *file, const wchar_t *name, const 
     success &= IniSaveNum(file, name, L"NtContinueHook", profile->hookNtContinue);
     success &= IniSaveNum(file, name, L"NtCreateThreadExHook", profile->hookNtCreateThreadEx);
     success &= IniSaveNum(file, name, L"NtGetContextThreadHook", profile->hookNtGetContextThread);
+    success &= IniSaveNum(file, name, L"NtQueryInformationThreadHook", profile->hookNtQueryInformationThread);
     success &= IniSaveNum(file, name, L"NtQueryInformationProcessHook", profile->hookNtQueryInformationProcess);
     success &= IniSaveNum(file, name, L"NtQueryObjectHook", profile->hookNtQueryObject);
     success &= IniSaveNum(file, name, L"NtQueryPerformanceCounterHook", profile->hookNtQueryPerformanceCounter);

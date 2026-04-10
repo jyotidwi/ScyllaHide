@@ -13,6 +13,7 @@ HookedNtCreateThread
 HookedNtCreateThreadEx
 HookedNtDuplicateObject
 HookedNtGetContextThread
+HookedNtQueryInformationThread
 HookedNtQueryInformationProcess
 HookedNtQueryObject
 HookedNtQueryPerformanceCounter

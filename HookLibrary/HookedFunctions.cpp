@@ -37,10 +37,33 @@ NTSTATUS NTAPI HookedNtSetInformationThread(HANDLE ThreadHandle, THREADINFOCLASS
 {
     if (ThreadInformationClass == ThreadHideFromDebugger && ThreadInformationLength == 0) // NB: ThreadInformation is not checked, this is deliberate
     {
-        if (ThreadHandle == NtCurrentThread ||
-			HandleToULong(NtCurrentTeb()->ClientId.UniqueProcess) == GetProcessIdByThreadHandle(ThreadHandle)) //thread inside this process?
+        if (ThreadHandle == NtCurrentThread)
         {
+            InterlockedOr8(TlsGetThreadHiddenFromDebugger(), 1);
             return STATUS_SUCCESS;
+        }
+        else
+        {
+            NTSTATUS NtQITStatus;
+            THREAD_BASIC_INFORMATION Tbi;
+
+            if (HookDllData.dNtQueryInformationThread)
+            {
+                NtQITStatus = HookDllData.dNtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &Tbi, sizeof(Tbi), nullptr);
+            }
+            else
+            {
+                NtQITStatus = NtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &Tbi, sizeof(Tbi), nullptr);
+            }
+            if (!NT_SUCCESS(NtQITStatus))
+            {
+                return STATUS_SUCCESS; // i should log stuff maybe, lol
+            }
+            if (NtCurrentTeb()->ClientId.UniqueProcess == Tbi.ClientId.UniqueProcess) // thread is in current process
+            {
+                InterlockedOr8(TlsGetThreadHiddenFromDebugger2(Tbi.TebBaseAddress), 1);
+                return STATUS_SUCCESS;
+            }
         }
     }
     return HookDllData.dNtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
@@ -172,7 +195,7 @@ InstrumentationCallback(
     _Inout_ ULONG_PTR ReturnVal // EAX/RAX
     )
 {
-    if (InterlockedOr(TlsGetInstrumentationCallbackDisabled(), 0x1) == 0x1)
+    if (InterlockedOr8(TlsGetInstrumentationCallbackDisabled(), 0x1) == 0x1)
         return ReturnVal; // Do not recurse
 
     const PVOID ImageBase = NtCurrentPeb()->ImageBaseAddress;
@@ -191,15 +214,56 @@ InstrumentationCallback(
         }
     }
 
-    InterlockedAnd(TlsGetInstrumentationCallbackDisabled(), 0);
+    InterlockedAnd8(TlsGetInstrumentationCallbackDisabled(), 0);
 
     return ReturnVal;
+}
+
+NTSTATUS NTAPI HookedNtQueryInformationThread(HANDLE ThreadHandle, THREADINFOCLASS ThreadInformationClass, PVOID ThreadInformation, ULONG ThreadInformationLength, PULONG ReturnLength)
+{
+    NTSTATUS Status = HookDllData.dNtQueryInformationThread(ThreadHandle,
+                                                            ThreadInformationClass,
+                                                            ThreadInformation,
+                                                            ThreadInformationLength,
+                                                            ReturnLength);
+
+    if (NT_SUCCESS(Status))
+    {
+        if (ThreadInformationClass == ThreadHideFromDebugger)
+        {
+            if (ThreadHandle == NtCurrentThread)
+            {
+                *(PBOOLEAN)ThreadInformation |= *TlsGetThreadHiddenFromDebugger();
+            }
+            else
+            {
+                NTSTATUS NtQITStatus;
+                THREAD_BASIC_INFORMATION Tbi;
+                if (HookDllData.dNtQueryInformationThread)
+                {
+                    NtQITStatus = HookDllData.dNtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &Tbi, sizeof(Tbi), nullptr);
+                }
+                else
+                {
+                    NtQITStatus = NtQueryInformationThread(ThreadHandle, ThreadBasicInformation, &Tbi, sizeof(Tbi), nullptr);
+                }
+                if (NT_SUCCESS(NtQITStatus))
+                {
+                    if (NtCurrentTeb()->ClientId.UniqueProcess == Tbi.ClientId.UniqueProcess) // thread is in current process
+                    {
+                        *(PBOOLEAN)ThreadInformation |= *TlsGetThreadHiddenFromDebugger2(Tbi.TebBaseAddress);
+                    }
+                }
+            }
+        }
+    }
+    return Status;
 }
 
 NTSTATUS NTAPI HookedNtQueryInformationProcess(HANDLE ProcessHandle, PROCESSINFOCLASS ProcessInformationClass, PVOID ProcessInformation, ULONG ProcessInformationLength, PULONG ReturnLength)
 {
     if (NumManualSyscalls == 0 &&
-        InterlockedOr(&InstrumentationCallbackHookInstalled, 0x1) == 0)
+        InterlockedOr8((char*)&InstrumentationCallbackHookInstalled, 0x1) == 0)
     {
         InstallInstrumentationCallbackHook(NtCurrentProcess, FALSE);
     }

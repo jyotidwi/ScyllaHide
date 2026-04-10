@@ -637,6 +637,7 @@ void FillHookDllData(HANDLE hProcess, HOOK_DLL_DATA *hdd)
     hdd->EnablePebOsBuildNumber = g_settings.opts().fixPebOsBuildNumber;
     hdd->EnableOutputDebugStringHook = g_settings.opts().hookOutputDebugStringA;
     hdd->EnableNtSetInformationThreadHook = g_settings.opts().hookNtSetInformationThread;
+    hdd->EnableNtQueryInformationThreadHook = g_settings.opts().hookNtQueryInformationThread;
     hdd->EnableNtQueryInformationProcessHook = g_settings.opts().hookNtQueryInformationProcess;
     hdd->EnableNtQuerySystemInformationHook = g_settings.opts().hookNtQuerySystemInformation;
     hdd->EnableNtQueryObjectHook = g_settings.opts().hookNtQueryObject;

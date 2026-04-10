@@ -294,6 +294,7 @@ void ReadSettings()
     g_hdd.EnableNtContinueHook = g_settings.opts().hookNtContinue;
     g_hdd.EnableNtCreateThreadExHook = g_settings.opts().hookNtCreateThreadEx;
     g_hdd.EnableNtGetContextThreadHook = g_settings.opts().hookNtGetContextThread;
+    g_hdd.EnableNtQueryInformationThreadHook = g_settings.opts().hookNtQueryInformationThread;
     g_hdd.EnableNtQueryInformationProcessHook = g_settings.opts().hookNtQueryInformationProcess;
     g_hdd.EnableNtQueryObjectHook = g_settings.opts().hookNtQueryObject;
     g_hdd.EnableNtQueryPerformanceCounterHook = g_settings.opts().hookNtQueryPerformanceCounter;
